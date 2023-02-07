@@ -43,6 +43,7 @@ OpenStreetMap_Mapnik.addTo(map);
 // Google Map Layer
 googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
     maxZoom: 20,
+	minZoom: 9,
     subdomains:['mt0','mt1','mt2','mt3']
 });
 googleStreets.addTo(map);
@@ -53,6 +54,12 @@ googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
     subdomains:['mt0','mt1','mt2','mt3']
 });
 googleSat.addTo(map);
+
+  // load GeoJSON from an external file
+  fetch("umkm.geojson").then(res => res.json()).then(data => {
+    // add GeoJSON layer to the map once the file is loaded
+    L.geoJson(data).addTo(map);
+  });
 
 // Layer Control
 
