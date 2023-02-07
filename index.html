@@ -65,12 +65,6 @@ var baseLayers = {
 L.control.layers(baseLayers).addTo(map);
 L.Control.geocoder().addTo(map);
 
-  // load GeoJSON from an external file
-  fetch("countriesex.geojson").then(res => res.json()).then(data => {
-    // add GeoJSON layer to the map once the file is loaded
-    L.geoJson(data).addTo(map);
-  });
-
 basemaps.googleStreets.addTo(map);
 
 </script>
