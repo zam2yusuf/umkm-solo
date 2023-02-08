@@ -33,8 +33,6 @@ var markers = L.geoJSON(null, {
   pointToLayer: createClusterIcon
 }).addTo(map);
 
-
-
 // Update the displayed clusters after user pan / zoom.
 map.on('moveend', update);
 
@@ -60,7 +58,7 @@ markers.on('click', function(e) {
 });
 
 // Retrieve Points data.
-var placesUrl = 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_populated_places.geojson';
+var placesUrl = 'https://raw.githubusercontent.com/zam2yusuf/umkm-solo/main/umkm.geojson';
 var index;
 var ready = false;
 
@@ -105,6 +103,7 @@ markers.on('click', (e) => {
 
 googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
     maxZoom: 22,
+  minZoom: 12,
     subdomains:['mt0','mt1','mt2','mt3']
 });
 googleStreets.addTo(map);
