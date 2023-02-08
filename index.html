@@ -5,8 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UMKM Surakarta</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+	<link rel="stylesheet" href="https://cdn.rawgit.com/mapbox/supercluster/v7.1.5/demo/cluster.css" />
+	<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
         #map{
             height: 100vh;
@@ -20,58 +21,94 @@
 </body>
 </html>
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+<script src="https://unpkg.com/supercluster@7.1.5/dist/supercluster.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 <script>
 
-// OSM Layer
-    var map = L.map('map').setView([-7.5506298, 110.8606141], 13);
-var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+var map = L.map('map').setView([-7.5506298, 110.8606141], 13);
+
+// Empty Layer Group that will receive the clusters data on the fly.
+var markers = L.geoJSON(null, {
+  pointToLayer: createClusterIcon
+}).addTo(map);
+
+
+
+// Update the displayed clusters after user pan / zoom.
+map.on('moveend', update);
+
+function update() {
+  if (!ready) return;
+  var bounds = map.getBounds();
+  var bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
+  var zoom = map.getZoom();
+  var clusters = index.getClusters(bbox, zoom);
+  markers.clearLayers();
+  markers.addData(clusters);
+}
+
+// Zoom to expand the cluster clicked by user.
+markers.on('click', function(e) {
+  var clusterId = e.layer.feature.properties.cluster_id;
+  var center = e.latlng;
+  var expansionZoom;
+  if (clusterId) {
+    expansionZoom = index.getClusterExpansionZoom(clusterId);
+    map.flyTo(center, expansionZoom);
+  }
 });
-osm.addTo(map);
 
-// Marker
+// Retrieve Points data.
+var placesUrl = 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_populated_places.geojson';
+var index;
+var ready = false;
 
+jQuery.getJSON(placesUrl, function(geojson) {
+  // Initialize the supercluster index.
+  index = new Supercluster({
+    radius: 60,
+    extent: 256,
+    maxZoom: 20
+  }).load(geojson.features); // Expects an array of Features.
 
-// Tile Layer
-var OpenStreetMap_Mapnik = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-	maxZoom: 19,
-	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  ready = true;
+  update();
 });
-OpenStreetMap_Mapnik.addTo(map);
 
-// Google Map Layer
+function createClusterIcon(feature, latlng) {
+  if (!feature.properties.cluster) return L.marker(latlng);
+
+  var count = feature.properties.point_count;
+  var size =
+    count < 100 ? 'small' :
+    count < 1000 ? 'medium' : 'large';
+  var icon = L.divIcon({
+    html: '<div><span>' + feature.properties.point_count_abbreviated + '</span></div>',
+    className: 'marker-cluster marker-cluster-' + size,
+    iconSize: L.point(40, 40)
+  });
+
+  return L.marker(latlng, {
+    icon: icon
+  });
+}
+
+markers.on('click', (e) => {
+    if (e.layer.feature.properties.cluster_id) {
+      worker.postMessage({
+        getClusterExpansionZoom: e.layer.feature.properties.cluster_id,
+        center: e.latlng
+      });
+    }
+});
+
 googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
-    maxZoom: 20,
-	minZoom: 9,
+    maxZoom: 22,
     subdomains:['mt0','mt1','mt2','mt3']
 });
 googleStreets.addTo(map);
 
-// Satellite Layer
-googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
-    maxZoom: 20,
-    subdomains:['mt0','mt1','mt2','mt3']
-});
-googleSat.addTo(map);
-
-  // load GeoJSON from an external file
-  fetch("umkm.geojson").then(res => res.json()).then(data => {
-    // add GeoJSON layer to the map once the file is loaded
-    L.geoJson(data).addTo(map);
-  });
-
-// Layer Control
-
-var baseLayers = {
-    "OpenStreetMap": osm,
-    "Google Satellite": googleSat,
-    "Google Maps": googleStreets,
-};
-
-L.control.layers(baseLayers).addTo(map);
 L.Control.geocoder().addTo(map);
-
-basemaps.googleStreets.addTo(map);
 
 </script>
