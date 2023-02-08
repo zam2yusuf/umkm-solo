@@ -54,15 +54,6 @@ var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 });
 osm.addTo(map);
 
-var baseLayers = {
-    "OpenStreetMap": osm,
-    "Google Satellite": googleSat,
-    "Google Maps": googleStreets,
-};
-
-L.control.layers(baseLayers).addTo(map);
-L.Control.geocoder().addTo(map);
-
 var markers = L.geoJSON(null, {
   pointToLayer: createClusterIcon
 }).addTo(map);
@@ -132,6 +123,15 @@ markers.on('click', (e) => {
       });
     }
 });
+
+var baseLayers = {
+    "OpenStreetMap": osm,
+    "Google Satellite": googleSat,
+    "Google Maps": googleStreets,
+};
+
+L.control.layers(baseLayers).addTo(map);
+L.Control.geocoder().addTo(map);
 
 basemaps.googleStreets.addTo(map);
 </script>
